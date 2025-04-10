@@ -1,49 +1,30 @@
 # app.py
 
 import streamlit as st
-import pandas as pd
 import numpy as np
-from generate_data import load_and_preprocess
-from model import build_model
 import tensorflow as tf
-import matplotlib.pyplot as plt
+from tensorflow.keras.models import load_model
+import joblib
 
-st.set_page_config(page_title="Well Log Lithofacies Predictor", layout="wide")
+# Load model and metadata
+model = load_model("/content/well_log_model.h5")
+facies_classes = np.load("/content/facies_classes.npy")
 
-st.title("🛢️ Well Log Lithofacies Predictor")
-st.markdown("Upload your well log data CSV to classify lithofacies using our deep learning model (CNN + GRU).")
+st.set_page_config(page_title="🛢️ Lithofacies Classifier", layout="centered")
+st.title("🛢️ Well Log Lithofacies Classifier")
+st.markdown("Enter the log values to predict the lithofacies class.")
 
-uploaded_file = st.file_uploader("Upload Well Log CSV", type=["csv"])
+# Input form
+GR = st.slider("Gamma Ray (GR)", 40.0, 120.0, 80.0)
+RHOB = st.slider("Bulk Density (RHOB)", 2.0, 3.0, 2.5)
+NPHI = st.slider("Neutron Porosity (NPHI)", 0.2, 0.6, 0.4)
+DT = st.slider("Sonic Travel Time (DT)", 90.0, 140.0, 115.0)
+ILD = st.slider("Deep Resistivity (ILD)", 30.0, 70.0, 50.0)
 
-if uploaded_file:
-    X, y, scaler, encoder = load_and_preprocess(uploaded_file)
-    st.success("✅ Data loaded and preprocessed.")
-
-    with st.spinner("Training model..."):
-        model = build_model(input_shape=X.shape[1:], num_classes=len(np.unique(y)))
-        history = model.fit(X, y, epochs=10, batch_size=32, validation_split=0.2, verbose=0)
-
-    st.success("✅ Model trained.")
-
-    # Predictions
-    preds = model.predict(X)
-    pred_labels = np.argmax(preds, axis=1)
-    decoded_preds = encoder.inverse_transform(pred_labels)
-
-    df_results = pd.read_csv(uploaded_file)
-    df_results['Predicted_Facies'] = decoded_preds
-
-    st.subheader("📊 Results Sample")
-    st.dataframe(df_results[['Depth', 'GR', 'RHOB', 'NPHI', 'DT', 'ILD', 'Predicted_Facies']].head())
-
-    # Visualization
-    st.subheader("📈 Prediction Distribution")
-    fig, ax = plt.subplots()
-    pd.Series(decoded_preds).value_counts().plot(kind='bar', ax=ax)
-    ax.set_title("Predicted Facies Distribution")
-    st.pyplot(fig)
-
-    st.download_button("📥 Download Predictions", df_results.to_csv(index=False), "predicted_facies.csv", "text/csv")
-
-else:
-    st.info("👆 Upload a CSV file to begin.")
+if st.button("Predict Lithofacies"):
+    input_data = np.array([[GR, RHOB, NPHI, DT, ILD]])
+    scaled_data = (input_data - input_data.mean(axis=0)) / input_data.std(axis=0)
+    scaled_data = scaled_data.reshape((scaled_data.shape[0], scaled_data.shape[1], 1))
+    prediction = model.predict(scaled_data)
+    predicted_class = facies_classes[np.argmax(prediction)]
+    st.success(f"🏷️ Predicted Lithofacies: **{predicted_class}**")
