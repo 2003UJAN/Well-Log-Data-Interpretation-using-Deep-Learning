@@ -7,8 +7,8 @@ from tensorflow.keras.models import load_model
 import joblib
 
 # Load model and metadata
-model = load_model("/content/well_log_model.h5")
-facies_classes = np.load("/content/facies_classes.npy")
+model = load_model("content/well_log_model.h5")
+classes = np.load("content/facies_classes.npy", allow_pickle=True)
 
 st.set_page_config(page_title="🛢️ Lithofacies Classifier", layout="centered")
 st.title("🛢️ Well Log Lithofacies Classifier")
