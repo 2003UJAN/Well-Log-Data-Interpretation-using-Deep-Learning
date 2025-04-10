@@ -1,26 +1,32 @@
 # generate_data.py
 
 import pandas as pd
-from sklearn.preprocessing import StandardScaler, LabelEncoder
 import numpy as np
-import os
 
-def load_and_preprocess(file_path):
-    df = pd.read_csv(file_path)
-    features = ['GR', 'RHOB', 'NPHI', 'DT', 'ILD']
-    target = 'Facies'
+def generate_synthetic_well_log_data(file_path="/content/well_log_sample.csv", num_samples=20000):
+    np.random.seed(42)
+    depths = np.arange(1000, 1000 + num_samples)
 
-    df = df.dropna(subset=features + [target])
-    
-    X = df[features].values
-    y = df[target].values
+    GR = np.random.normal(80, 5, num_samples)
+    RHOB = np.random.normal(2.5, 0.05, num_samples)
+    NPHI = np.random.normal(0.4, 0.03, num_samples)
+    DT = np.random.normal(115, 3, num_samples)
+    ILD = np.random.normal(50, 2, num_samples)
+    facies_classes = ['Sandstone', 'Shale', 'Limestone']
+    Facies = np.random.choice(facies_classes, num_samples)
 
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+    df = pd.DataFrame({
+        'Depth': depths,
+        'GR': GR,
+        'RHOB': RHOB,
+        'NPHI': NPHI,
+        'DT': DT,
+        'ILD': ILD,
+        'Facies': Facies
+    })
 
-    encoder = LabelEncoder()
-    y_encoded = encoder.fit_transform(y)
+    df.to_csv(file_path, index=False)
+    print(f"✅ Synthetic well log data generated at: {file_path}")
 
-    X_scaled = X_scaled.reshape((X_scaled.shape[0], X_scaled.shape[1], 1))
-
-    return X_scaled, y_encoded, scaler, encoder
+if __name__ == "__main__":
+    generate_synthetic_well_log_data()
