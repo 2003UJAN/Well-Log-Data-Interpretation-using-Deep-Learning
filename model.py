@@ -45,8 +45,8 @@ def train_model():
     checkpoint = ModelCheckpoint("/content/well_log_model.h5", save_best_only=True, monitor='val_accuracy', mode='max')
     model.fit(X, y, epochs=10, batch_size=32, validation_split=0.2, callbacks=[checkpoint], verbose=1)
 
-    print("✅ Model saved at /content/well_log_model.h5")
-    np.save("/content/facies_classes.npy", classes)
+    print("✅ Model saved at content/well_log_model.h5")
+    np.save("content/facies_classes.npy", classes)
     return scaler
 
 if __name__ == "__main__":
