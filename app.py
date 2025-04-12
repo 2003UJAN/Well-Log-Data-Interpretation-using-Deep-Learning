@@ -1,30 +1,50 @@
-# app.py
-
 import streamlit as st
 import numpy as np
-import tensorflow as tf
+import pandas as pd
 from tensorflow.keras.models import load_model
-import joblib
 
-# Load model and metadata
+# Load the trained model and class labels
 model = load_model("content/well_log_model.h5")
-classes = np.load("content/facies_classes.npy", allow_pickle=True)
+facies_classes = np.load("content/facies_classes.npy", allow_pickle=True).tolist()
 
-st.set_page_config(page_title="🛢️ Lithofacies Classifier", layout="centered")
-st.title("🛢️ Well Log Lithofacies Classifier")
-st.markdown("Enter the log values to predict the lithofacies class.")
+st.set_page_config(page_title="Well Log Facies Predictor", layout="centered")
 
-# Input form
-GR = st.slider("Gamma Ray (GR)", 40.0, 120.0, 80.0)
-RHOB = st.slider("Bulk Density (RHOB)", 2.0, 3.0, 2.5)
-NPHI = st.slider("Neutron Porosity (NPHI)", 0.2, 0.6, 0.4)
-DT = st.slider("Sonic Travel Time (DT)", 90.0, 140.0, 115.0)
-ILD = st.slider("Deep Resistivity (ILD)", 30.0, 70.0, 50.0)
+# UI Design
+st.title("🛢️ Well Log Facies Classification using Deep Learning")
+st.markdown("""
+Welcome to the **Automated Lithofacies Classifier** powered by **1D CNN + GRU**.
+Upload a well log sample CSV file with these logs: `GR`, `RHOB`, `NPHI`, `PE`, `DT` and get the predicted **facies**.
+""")
 
-if st.button("Predict Lithofacies"):
-    input_data = np.array([[GR, RHOB, NPHI, DT, ILD]])
-    scaled_data = (input_data - input_data.mean(axis=0)) / input_data.std(axis=0)
-    scaled_data = scaled_data.reshape((scaled_data.shape[0], scaled_data.shape[1], 1))
-    prediction = model.predict(scaled_data)
-    predicted_class = facies_classes[np.argmax(prediction)]
-    st.success(f"🏷️ Predicted Lithofacies: **{predicted_class}**")
+uploaded_file = st.file_uploader("📤 Upload Well Log Sample CSV", type=["csv"])
+
+if uploaded_file:
+    try:
+        df = pd.read_csv(uploaded_file)
+        required_columns = ['GR', 'RHOB', 'NPHI', 'PE', 'DT']
+
+        if all(col in df.columns for col in required_columns):
+            st.success("✅ Valid File Uploaded!")
+
+            # Normalize input
+            X = df[required_columns].values
+            X = (X - np.mean(X, axis=0)) / (np.std(X, axis=0) + 1e-6)
+            X = np.expand_dims(X, axis=0)
+
+            prediction = model.predict(X)
+
+            if prediction.shape[1] == len(facies_classes):
+                predicted_class = facies_classes[np.argmax(prediction)]
+                st.markdown(f"### 🧠 Predicted Lithofacies: `{predicted_class}`")
+            else:
+                st.error("❌ Model output shape does not match number of facies classes.")
+
+        else:
+            st.error(f"❌ Missing required columns! Please include: {', '.join(required_columns)}")
+
+    except Exception as e:
+        st.error(f"⚠️ Error reading file: {str(e)}")
+
+# Footer
+st.markdown("---")
+st.caption("Built with ❤️ using Streamlit | © 2025")
